@@ -39,6 +39,10 @@ Create a `.env.local` file and add your [WalletConnect Project ID](https://cloud
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
 ```
 
+```bash
+pnpm add @rainbow-me/rainbowkit@latest
+```
+
 ---
 
 ## 🧱 Project Structure
