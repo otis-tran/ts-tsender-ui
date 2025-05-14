@@ -43,6 +43,10 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
 pnpm add @rainbow-me/rainbowkit@latest
 ```
 
+```bash
+pnpm add react-icons
+```
+
 ---
 
 ## 🧱 Project Structure
