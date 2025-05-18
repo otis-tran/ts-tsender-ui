@@ -2,6 +2,8 @@
 
 A simple and powerful dApp for distributing ERC20 tokens to multiple recipients using the `airdropERC20` function from a deployed **TSender** smart contract. Built with **Next.js**, **Viem**, **Wagmi**, and **RainbowKit**, and deployed on IPFS via **Fleek**.
 
+![TSender UI Demo](./public/tsender-demo.png)
+
 ---
 
 ## 🚀 Features
