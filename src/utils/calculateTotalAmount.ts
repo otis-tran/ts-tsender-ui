@@ -14,6 +14,7 @@ export function calculateTotalAmount(amounts: string): bigint {
                 try {
                     return BigInt(amt)
                 } catch (e) {
+                    console.log("Error parsing amount:", e)
                     // If parsing fails, return 0
                     return BigInt(0)
                 }
@@ -25,6 +26,7 @@ export function calculateTotalAmount(amounts: string): bigint {
 
         return amountArray.reduce((acc, curr) => acc + curr, BigInt(0))
     } catch (e) {
+        console.log("Error calculating total amount:", e)
         // Safety fallback in case of any errors
         return BigInt(0)
     }

@@ -5,7 +5,7 @@ import { chainsToTSender, erc20Abi, tsenderAbi } from "@/constants";
 import { useAccount, useChainId, useConfig, useWriteContract, useReadContracts } from "wagmi";
 import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 import { calculateTotalAmount } from "@/utils/calculateTotalAmount";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 
 const STORAGE_KEYS = {
     TOKEN_ADDRESS: 'airdrop_token_address',
@@ -61,7 +61,7 @@ export default function AirdropForm() {
     const config = useConfig();
     const account = useAccount();
     const totalAmount = useMemo(() => calculateTotalAmount(amounts), [amounts]);
-    const { data, isPending, error, writeContractAsync } = useWriteContract();
+    const { isPending, writeContractAsync } = useWriteContract();
 
     // Setup contract reads for token details
     const { data: tokenData, isLoading: isLoadingToken } = useReadContracts({
@@ -203,6 +203,8 @@ export default function AirdropForm() {
                 const approvalReceipt = await waitForTransactionReceipt(config, {
                     hash: approvalAmountHash,
                 });
+
+                console.log("Approval Receipt:", approvalReceipt);
 
                 setTxState(prev => ({ ...prev, isConfirmed: true }));
                 await new Promise(resolve => setTimeout(resolve, 2000));
