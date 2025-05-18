@@ -1,15 +1,36 @@
 "use client"
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { InputForm } from "./ui/InputField";
 import { chainsToTSender, erc20Abi, tsenderAbi } from "@/constants";
 import { useAccount, useChainId, useConfig, useWriteContract } from "wagmi";
 import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 import { calculateTotalAmount } from "@/utils/calculateTotalAmount";
 
+const STORAGE_KEYS = {
+    TOKEN_ADDRESS: 'airdrop_token_address',
+    RECIPIENTS: 'airdrop_recipients',
+    AMOUNTS: 'airdrop_amounts'
+} as const;
+
 export default function AirdropForm() {
-    const [tokenAddress, setTokenAddress] = useState("");
-    const [recipients, setRecipients] = useState("");
-    const [amounts, setAmounts] = useState("");
+    const [tokenAddress, setTokenAddress] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem(STORAGE_KEYS.TOKEN_ADDRESS) || "";
+        }
+        return "";
+    });
+    const [recipients, setRecipients] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem(STORAGE_KEYS.RECIPIENTS) || "";
+        }
+        return "";
+    });
+    const [amounts, setAmounts] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem(STORAGE_KEYS.AMOUNTS) || "";
+        }
+        return "";
+    });
     const [touched, setTouched] = useState({
         tokenAddress: false,
         recipients: false,
@@ -33,6 +54,26 @@ export default function AirdropForm() {
     const account = useAccount();
     const totalAmount = useMemo(() => calculateTotalAmount(amounts), [amounts]);
     const { data, isPending, error, writeContractAsync } = useWriteContract();
+
+    // Save to localStorage whenever values change
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEYS.TOKEN_ADDRESS, tokenAddress);
+    }, [tokenAddress]);
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEYS.RECIPIENTS, recipients);
+    }, [recipients]);
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEYS.AMOUNTS, amounts);
+    }, [amounts]);
+
+    // Clear localStorage after successful transaction
+    const clearStoredData = () => {
+        localStorage.removeItem(STORAGE_KEYS.TOKEN_ADDRESS);
+        localStorage.removeItem(STORAGE_KEYS.RECIPIENTS);
+        localStorage.removeItem(STORAGE_KEYS.AMOUNTS);
+    };
 
     // Validation functions
     const validateTokenAddress = (value: string) => {
@@ -108,7 +149,6 @@ export default function AirdropForm() {
                 });
 
                 setTxState(prev => ({ ...prev, isConfirmed: true }));
-                // Wait a bit to show the confirmation state
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 setTxState(prev => ({ ...prev, isConfirmed: false, isConfirming: true }));
             }
@@ -126,13 +166,15 @@ export default function AirdropForm() {
             });
 
             setTxState(prev => ({ ...prev, isConfirmed: true }));
-            // Reset form after successful transaction
+            
+            // Clear form and localStorage after successful transaction
             setTimeout(() => {
                 setTokenAddress("");
                 setRecipients("");
                 setAmounts("");
                 setTouched({ tokenAddress: false, recipients: false, amounts: false });
                 setTxState({ isPending: false, isConfirming: false, isConfirmed: false, error: null });
+                clearStoredData();
             }, 3000);
 
         } catch (err) {
