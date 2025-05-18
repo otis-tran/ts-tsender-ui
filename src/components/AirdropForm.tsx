@@ -15,6 +15,18 @@ export default function AirdropForm() {
         recipients: false,
         amounts: false
     });
+    const [txState, setTxState] = useState<{
+        isPending: boolean;
+        isConfirming: boolean;
+        isConfirmed: boolean;
+        error: string | null;
+    }>({
+        isPending: false,
+        isConfirming: false,
+        isConfirmed: false,
+        error: null
+    });
+    const [showCopyToast, setShowCopyToast] = useState(false);
 
     const chainId = useChainId();
     const config = useConfig();
@@ -76,58 +88,118 @@ export default function AirdropForm() {
     }
 
     async function handleSubmit() {
-        // You can access the current state values here
-        console.log("Token Address:", tokenAddress);
-        console.log("Recipients:", recipients);
-        console.log("Amounts:", amounts);
-        // ... logic to handle form submission
-        const tSenderAddress = chainsToTSender[chainId]["tsender"];
-        console.log("TSender Address:", tSenderAddress);
-        console.log("Chain ID:", chainId);
-        const approvedAmount = await getApprovedAmount(tSenderAddress);
-        console.log("Approved Amount:", approvedAmount);
-        console
-        if (approvedAmount < totalAmount) {
-            const approvalAmountHash = await writeContractAsync({
-                address: tokenAddress as '0x${string}',
-                abi: erc20Abi,
-                functionName: "approve",
-                args: [tSenderAddress as '0x${string}', BigInt(totalAmount)],
-            });
-            console.log("Approval Transaction Hash:", approvalAmountHash);
-            const approvalReceipt = await waitForTransactionReceipt(config, {
-                hash: approvalAmountHash,
-            });
-            console.log("Approval Transaction Receipt:", approvalReceipt);
+        try {
+            setTxState(prev => ({ ...prev, isPending: true, error: null }));
+            
+            const tSenderAddress = chainsToTSender[chainId]["tsender"];
+            const approvedAmount = await getApprovedAmount(tSenderAddress);
 
-            alert("Approval transaction sent. Please wait for confirmation.");
-             await writeContractAsync({
+            if (approvedAmount < totalAmount) {
+                setTxState(prev => ({ ...prev, isConfirming: true }));
+                const approvalAmountHash = await writeContractAsync({
+                    address: tokenAddress as '0x${string}',
+                    abi: erc20Abi,
+                    functionName: "approve",
+                    args: [tSenderAddress as '0x${string}', BigInt(totalAmount)],
+                });
+
+                const approvalReceipt = await waitForTransactionReceipt(config, {
+                    hash: approvalAmountHash,
+                });
+
+                setTxState(prev => ({ ...prev, isConfirmed: true }));
+                // Wait a bit to show the confirmation state
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                setTxState(prev => ({ ...prev, isConfirmed: false, isConfirming: true }));
+            }
+
+            await writeContractAsync({
                 abi: tsenderAbi,
                 address: tSenderAddress as `0x${string}`,
                 functionName: "airdropERC20",
                 args: [
                     tokenAddress,
-                    // Comma or new line separated
                     recipients.split(/[,\n]+/).map(addr => addr.trim()).filter(addr => addr !== ''),
                     amounts.split(/[,\n]+/).map(amt => amt.trim()).filter(amt => amt !== ''),
                     BigInt(totalAmount),
                 ],
-            })
-        }else {
-              await writeContractAsync({
-                abi: tsenderAbi,
-                address: tSenderAddress as `0x${string}`,
-                functionName: "airdropERC20",
-                args: [
-                    tokenAddress,
-                    // Comma or new line separated
-                    recipients.split(/[,\n]+/).map(addr => addr.trim()).filter(addr => addr !== ''),
-                    amounts.split(/[,\n]+/).map(amt => amt.trim()).filter(amt => amt !== ''),
-                    BigInt(totalAmount),
-                ],
-            })
+            });
+
+            setTxState(prev => ({ ...prev, isConfirmed: true }));
+            // Reset form after successful transaction
+            setTimeout(() => {
+                setTokenAddress("");
+                setRecipients("");
+                setAmounts("");
+                setTouched({ tokenAddress: false, recipients: false, amounts: false });
+                setTxState({ isPending: false, isConfirming: false, isConfirmed: false, error: null });
+            }, 3000);
+
+        } catch (err) {
+            setTxState(prev => ({
+                ...prev,
+                error: err instanceof Error ? err.message : "An error occurred",
+                isPending: false,
+                isConfirming: false
+            }));
         }
     }
+
+    const handleCopyAddress = (errorMessage: string| null)=> {
+        if (!errorMessage) return;
+        const address = errorMessage.match(/0x[a-fA-F0-9]+/)?.[0];
+        if (address) {
+            navigator.clipboard.writeText(address);
+            setShowCopyToast(true);
+            setTimeout(() => setShowCopyToast(false), 2000);
+        }
+    };
+
+    const renderButtonContent = () => {
+        if (txState.isPending) {
+            return (
+                <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Confirming in wallet...</span>
+                </>
+            );
+        }
+        if (txState.isConfirming) {
+            return (
+                <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Mining transaction...</span>
+                </>
+            );
+        }
+        if (txState.isConfirmed) {
+            return (
+                <>
+                    <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>Transaction Confirmed!</span>
+                </>
+            );
+        }
+        if (txState.error) {
+            return (
+                <>
+                    <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    <span>Error occurred</span>
+                </>
+            );
+        }
+        return "Send Tokens";
+    };
 
     return (
         <div className="max-w-2xl mx-auto p-6 space-y-6">
@@ -216,39 +288,59 @@ export default function AirdropForm() {
                     </div>
                 )}
 
-                {error && (
+                {txState.error && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <p className="text-sm text-red-600">
-                            Error: {error.message}
-                        </p>
+                        <div className="flex items-start gap-2 text-red-600">
+                            <svg className="h-5 w-5 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium break-all whitespace-pre-wrap">{txState.error}</p>
+                                {txState.error.includes("0x") && (
+                                    <button
+                                        onClick={() => handleCopyAddress(txState.error)}
+                                        className="mt-2 text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
+                                    >
+                                        <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                                        </svg>
+                                        Copy address
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showCopyToast && (
+                    <div className="fixed bottom-4 right-4 bg-zinc-900 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in-up">
+                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Address copied to clipboard
                     </div>
                 )}
 
                 <button
                     type="submit"
                     onClick={handleSubmit}
-                    disabled={isPending || !isFormValid}
+                    disabled={isPending || !isFormValid || txState.isPending || txState.isConfirming}
                     className={`
                         w-full py-3 px-4 rounded-lg font-medium text-white
-                        ${isPending || !isFormValid
+                        ${(isPending || !isFormValid || txState.isPending || txState.isConfirming)
                             ? 'bg-zinc-400 cursor-not-allowed' 
-                            : 'bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-950'
+                            : txState.isConfirmed
+                                ? 'bg-green-600 hover:bg-green-700'
+                                : txState.error
+                                    ? 'bg-red-600 hover:bg-red-700'
+                                    : 'bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-950'
                         }
                         transition-colors duration-200
                         flex items-center justify-center gap-2
                     `}
                 >
-                    {isPending ? (
-                        <>
-                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Processing...
-                        </>
-                    ) : (
-                        'Send Tokens'
-                    )}
+                    {renderButtonContent()}
                 </button>
             </div>
         </div>
