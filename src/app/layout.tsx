@@ -18,7 +18,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col">
         {/* Wrap the entire body content with Providers */}
         <Providers>
-          <Header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-zinc-200" />
+          <Header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-neutral-200" />
           <main className="flex-1 pt-16">
             {children}
           </main>
