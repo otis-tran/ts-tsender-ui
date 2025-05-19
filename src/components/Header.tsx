@@ -5,9 +5,13 @@ import { FaGithub } from "react-icons/fa"
 import Image from "next/image"
 import Link from "next/link"
 
-export default function Header() {
+interface HeaderProps {
+    className?: string;
+}
+
+export default function Header({ className = "" }: HeaderProps) {
     return (
-        <nav className="px-8 py-4.5 border-b-[1px] border-zinc-100 flex flex-row justify-between items-center bg-white xl:min-h-[77px]">
+        <nav className={`px-8 py-4.5 border-b-[1px] border-zinc-100 flex flex-row justify-between items-center bg-white xl:min-h-[77px] ${className}`}>
             <div className="flex items-center gap-2.5 md:gap-6">
                 <Link href="/" className="flex items-center gap-1 text-zinc-800">
                     <Image src="/T-Sender.svg" alt="TSender" width={36} height={36} />
