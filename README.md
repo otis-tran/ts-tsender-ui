@@ -2,6 +2,8 @@
 
 A simple and powerful dApp for distributing ERC20 tokens to multiple recipients using the `airdropERC20` function from a deployed [**TSender**](https://github.com/cyfrin/TSender) smart contract. Built with **Next.js**, **Viem**, **Wagmi**, and **RainbowKit**, and deployed on IPFS via **Fleek**.
 
+[**TSender UI**](https://great-addition-tinkling.on-fleek.app/)
+
 ## 📋 Table of Contents
 
 - [Features](#-features)
@@ -12,11 +14,13 @@ A simple and powerful dApp for distributing ERC20 tokens to multiple recipients 
   - [Environment Setup](#environment-setup)
 - [Project Structure](#-project-structure)
 - [Development](#-development)
+- [Build & Deploy](#-build--deploy)
+  - [Build Process](#build-process)
+  - [Deployment](#deployment)
 - [How It Works](#-how-it-works)
   - [Wallet Connection](#1-wallet-connection)
   - [Airdrop ERC20 Interaction](#2-airdrop-erc20-interaction)
   - [Smart Contract Requirements](#3-smart-contract-requirements)
-  - [Deployment](#4-deployment)
 - [Demo](#-demo)
 - [License](#-license)
 
@@ -91,6 +95,52 @@ pnpm dev
 
 Visit [http://localhost:3000](http://localhost:3000) to use the app locally.
 
+## 🚀 Build & Deploy
+
+### Build Process
+
+1. Build the application:
+```bash
+pnpm run build
+```
+
+Expected output:
+```
+✓ Compiled successfully in 30.0s
+✓ Linting and checking validity of types    
+✓ Collecting page data    
+✓ Generating static pages (5/5)
+✓ Collecting build traces    
+✓ Exporting (3/3)
+✓ Finalizing page optimization 
+```
+
+Build statistics:
+- Main page size: 8.1 kB
+- First Load JS: 167 kB
+- Shared chunks: 103 kB
+
+### Deployment
+
+1. Deploy to IPFS using Fleek:
+```bash
+fleek sites deploy
+```
+
+2. After successful deployment, you'll receive:
+- IPFS Content Identifier (CID)
+- Gateway URL for accessing your dApp
+
+Example output:
+```
+✅ Success! Deployed!
+> Site IPFS Content Identifier (CID): bafybeigfwy5nvr3gkns3for7xrijo3upigze3jz3ply2nz3j3zr7ytwnla
+💡 You can access it through the gateway:
+🔗 https://great-addition-tinkling.on-fleek.app
+```
+
+Note: You may see a warning about `pino-pretty` during build, but this doesn't affect the functionality of the application.
+
 ## 🧪 How It Works
 
 ### 1. Wallet Connection
@@ -118,16 +168,6 @@ function airdropERC20(
     uint256[] calldata amounts
 ) external;
 ```
-
-### 4. Deployment
-
-To deploy to IPFS using Fleek:
-
-1. Connect your GitHub repository to [Fleek](https://app.fleek.co/)
-2. Configure build settings:
-   * **Build Command:** `pnpm build`
-   * **Publish Directory:** `out`
-3. Your app will be available on an IPFS-powered URL
 
 ## 📸 Demo
 
